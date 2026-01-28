@@ -69,8 +69,14 @@
 				style="width: 20px; height: 20px; display: inline-block;">
 				(${vo.hit})</td>
 		</tr>
-		<tr rowspan="10">
+	</table>
+	<table class="table">
+		<tr>
 			<td>${vo.content }</td>
+		</tr>
+		<tr>
+			<td class="text-right"><a href="/find"
+				class="btn btn-xs btn-info">맛집 검색</a></td>
 		</tr>
 	</table>
 </body>
