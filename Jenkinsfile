@@ -2,7 +2,7 @@
       agent any
       
       environment {
-         DOCKER_IMAGE = "sunghyun9737/awscicd-app"
+         DOCKER_IMAGE = "masterjeon/awscicd-app"
          DOCKER_TAG = "latest"
          EC2_HOST = "13.209.87.131"
          EC2_USER = "ubuntu"
