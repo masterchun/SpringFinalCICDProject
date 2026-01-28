@@ -2,7 +2,7 @@ pipeline {
 	agent any
 	
 	environment {
-		DOCKER_IMAGE = 'masterjeon/boot-app:latest'
+		IMAGE_NAME = 'masterjeon/boot-app:latest'
 		CONTAINER_NAME = 'boot-app'
 	}
 	
@@ -29,7 +29,7 @@ pipeline {
 			steps {
 				echo 'Docker Image Build'
 				sh '''
-					docker build -t ${DOCKER_IMAGE} .
+					docker build -t ${IMAGE_NAME}  .
 				'''
 			}
 		}
@@ -43,7 +43,7 @@ pipeline {
 					
 					docker run --name ${CONTAINER_NAME} \
 					-it -d -p 9090:9090 \
-					${DOCKER_IMAGE}
+					${IMAGE_NAME}
 				'''
 			}
 		}
