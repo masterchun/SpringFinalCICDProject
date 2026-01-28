@@ -69,6 +69,7 @@ pipeline{
 				}
 			}
 			
+			
 			stage('Docker Compose Up') {
 				steps {
 					echo 'docker-compose up'
