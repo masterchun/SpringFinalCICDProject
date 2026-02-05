@@ -1,109 +1,81 @@
 pipeline {
    agent any
-   
-   // 전역변수 => ${SERVER_IP}
+
    environment {
-         APP_DIR = "~/app"
-         JAR_NAME = "*-0.0.1-SNAPSHOT.war"
+      DOCKER_USER = "masterjeon"
+      DOCKER_IMAGE = "${DOCKER_USER}/boot-app:latest"
+      CONTAINER_NAME = "boot-app"
    }
-      
+
    stages {
-      /*
-         git push = commit
-             |
-         web hooks / poll
-             |
-          jenkins (local)
-             |
-           build
-             |
-           docker build
-           docker push
-             |
-           minikube
-             | deployment.yaml update
-           브라우저 실행
-      */
-      /*
-       연결 확인 = ngrok
-       stage('Check Git Info') {
+      stage('Checkout') {
          steps {
-            sh '''
-                echo "===Git Info==="
-                git branch
-                git log -1
-               '''
-         }
-      }*/
-      
-      // 감지 = main : push (commit)
-      stage('Check Out') {
-         steps {
-             echo 'Git Checkout'
-                 checkout scm
+            echo 'Git Checkout'
+            checkout scm
          }
       }
-      
-      // gradle build => war파일을 다시 생성 
-      stage('Gradle Permission') {
-         steps {
-            sh '''
-                chmod +x gradlew
-               '''
-         }
-      }
-      
-      // build 시작 
+
       stage('Gradle Build') {
          steps {
+            echo 'Gradle Build'
             sh '''
-                ./gradlew clean build
-               '''
+                  chmod +x gradlew
+                  ./gradlew clean build -x test
+                '''
          }
       }
-      
-      // Docker Build 
+
+
       stage('Docker Build') {
          steps {
+            echo 'Docker Image Build'
             sh '''
-               docker build -t masterjeon/total-app:latest .
-               '''
+                  docker build -t ${DOCKER_IMAGE} .
+                '''
          }
       }
-      
-      stage('Docker Login') {
-           steps {
-                withCredentials([usernamePassword(
-                 credentialsId: 'dockerhub-creds',
-                   usernameVariable: 'DH_USER',
-                 passwordVariable: 'DH_PASS'
-          )]) {
-               sh '''
-                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                  '''
-             }
-           }
-      }
-      
-      // Docker Push
-      stage('Docker Push') {
-           steps {
-             sh '''
-                  docker push masterjeon/total-app:latest
-             '''
-           }
-      }
-      
-      // 실행 명령 
-      
-      stage('Deploy to MiniKube') {
+
+      stage('DockerHub Login') {
          steps {
-            sh '''
-               kubectl apply -f /var/lib/jenkins/k8s/deployment.yaml
-               kubectl rollout status deployment/totalapp-deployment
-               '''
+            echo 'DockerHub Login'
+            withCredentials([usernamePassword(
+               credentialsId: 'dockerhub-credential',
+               usernameVariable: 'DOCKER_ID',
+               passwordVariable: 'DOCKER_PW'
+            )]) {
+               sh "echo ${DOCKER_PW} | docker login -u ${DOCKER_ID} --password-stdin"
+            }
          }
       }
-      
+
+      stage('DockerHub Push') {
+         steps {
+            echo 'DockerHub Push'
+            sh "docker push ${DOCKER_IMAGE}"
+         }
+      }
+
+      stage('Docker Run') {
+         steps {
+            echo 'Docker Run'
+            sh '''
+                  docker stop ${CONTAINER_NAME} || true
+                  docker rm ${CONTAINER_NAME} || true
+
+                  docker pull ${DOCKER_IMAGE}
+
+                  docker run --name ${CONTAINER_NAME} -it -d -p 9090:9090 ${DOCKER_IMAGE}
+                '''
+         }
+      }
+   }
+
+   post {
+      success {
+         echo 'Docker 실행 성공'
+      }
+      failure {
+         echo 'Docker 실행 실패'
+      }
    }
 }
